@@ -1,7 +1,4 @@
 import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, auth
-import pyrebase
 import gspread
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -10,8 +7,8 @@ import pandas as pd
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import os
 from datetime import datetime
+import os
 
 # 페이지 설정
 st.set_page_config(
@@ -21,31 +18,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 세션 상태 초기화
-if 'login_status' not in st.session_state:
-    st.session_state.login_status = False
-
 # Streamlit Secrets에서 민감 정보 불러오기
-api_key = st.secrets["credentials"]["api_key"]
 spreadsheet_id = st.secrets["credentials"]["spreadsheet_id"]
 email_user = st.secrets["email"]["user"]
 email_password = st.secrets["email"]["password"]
-
-# Firebase 설정
-firebase_config = {
-    "apiKey": api_key,
-    "authDomain": "your-project-id.firebaseapp.com",
-    "databaseURL": "https://your-project-id.firebaseio.com",
-    "storageBucket": "your-project-id.appspot.com",
-    "projectId": "your-project-id"
-}
-
-# Firebase 초기화
-if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase_admin"])
-    firebase_admin.initialize_app(cred)
-firebase = pyrebase.initialize_app(firebase_config)
-auth_service = firebase.auth()
 
 # Google API 인증 설정
 def initialize_google_services():
@@ -91,7 +67,7 @@ def upload_file_to_drive(file):
         
         file_metadata = {
             "name": f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.name}",
-            "parents": ["your_drive_folder_id"]  # 실제 폴더 ID로 교체하세요
+            "parents": ["your_drive_folder_id"]  # 실제 Google 드라이브 폴더 ID로 교체하세요
         }
         
         media = MediaFileUpload(
@@ -111,31 +87,6 @@ def upload_file_to_drive(file):
     except Exception as e:
         st.error(f"파일 업로드 실패: {str(e)}")
         return None
-
-# 사이드바 - 로그인/회원가입
-def sidebar_auth():
-    with st.sidebar:
-        st.title("사용자 인증")
-        auth_option = st.radio("선택하세요", ("로그인", "회원가입"))
-        
-        with st.form("auth_form"):
-            email = st.text_input("이메일")
-            password = st.text_input("비밀번호", type="password")
-            submit_button = st.form_submit_button("실행")
-            
-            if submit_button:
-                try:
-                    if auth_option == "회원가입":
-                        user = auth_service.create_user_with_email_and_password(email, password)
-                        st.success("회원가입 성공! 로그인해주세요.")
-                    else:
-                        user = auth_service.sign_in_with_email_and_password(email, password)
-                        st.session_state.login_status = True
-                        st.session_state.user_email = email
-                        st.success("로그인 성공!")
-                        st.experimental_rerun()
-                except Exception as e:
-                    st.error("인증 실패. 이메일과 비밀번호를 확인해주세요.")
 
 # 메인 앱 UI
 def main_app():
@@ -219,7 +170,6 @@ def main_app():
                         
                         # 데이터 저장
                         sheet.append_row([
-                            st.session_state.user_email,
                             location_name,
                             address,
                             ", ".join(contact_persons),
@@ -268,17 +218,7 @@ def main_app():
 
 # 메인 실행 부분
 def main():
-    if not st.session_state.login_status:
-        sidebar_auth()
-        st.write("로그인이 필요합니다.")
-    else:
-        main_app()
-        
-        # 로그아웃 버튼
-        if st.sidebar.button("로그아웃"):
-            st.session_state.login_status = False
-            st.session_state.user_email = None
-            st.experimental_rerun()
+    main_app()
 
 if __name__ == "__main__":
     main()
