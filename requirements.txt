@@ -1,1 +1,12 @@
 streamlit
+firebase-admin
+pyrebase4
+gspread
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+pandas
+smtplib
+email
+python-dotenv  # 환경변수 파일(.env)을 사용할 경우
